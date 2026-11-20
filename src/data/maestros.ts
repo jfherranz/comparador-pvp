@@ -1,0 +1,48 @@
+import { Maestros } from '../types';
+
+// Listados tomados de la hoja "Maestros" de Comparador_PVP_LosGranos_v13.xlsx
+export const MAESTROS_INICIALES: Maestros = {
+  cadenas: [
+    'Cugat', 'El Trébol', 'Eltit', 'Provimarket', 'El 9',
+    'Lily', 'Comercial Castro', 'Super 10', 'Unimarc', 'Cencocal',
+  ],
+  productos: [
+    'Arroz Pregraneado 1Kg',
+    'Arroz Grado 1 Largo Delgado 1Kg',
+    'Arroz Grado 2 Largo Delgado 1Kg',
+    'Arroz Grado 1 Largo Ancho 1Kg',
+    'Arroz Grado 2 Largo Ancho 1Kg',
+    'Arroz Sushi 1Kg',
+    'Arroz Basmati 1Kg',
+    'Poroto Rojo 1Kg',
+    'Poroto Negro 1Kg',
+    'Poroto Blanco 1Kg',
+    'Poroto Hallado 1Kg',
+    'Poroto Tortola 1Kg',
+    'Poroto Pelado 1Kg',
+    'Lenteja 4mm 1Kg',
+    'Lenteja 5mm 1Kg',
+    'Lenteja 6mm 1Kg',
+    'Lenteja Roja 1Kg',
+    'Garbanzo Sin Piel 1Kg',
+    'Arveja Verde Partida 1Kg',
+    'Arveja Amarilla Partida 1Kg',
+    'Avena Instantánea 500Gr',
+    'Avena Tradicional 500Gr',
+    'Maiz Curagua 500Gr',
+    'Quinoa Blanca 400Gr',
+    'Poroto Negro 500Gr',
+    'Poroto Blanco 500Gr',
+    'Poroto Hallado 500Gr',
+    'Poroto Tortola 500Gr',
+    'Lentejas 6mm 500Gr',
+    'Garbanzo Sin Piel 500Gr',
+    'Arvejas Verdes Partidas 500Gr',
+  ],
+  marcas: [
+    'Los Granos', 'Tucapel', 'Banquete', 'Miraflores', 'Campo Lindo', 'Aruba',
+    'Los Chinos', 'Bonanza', 'Del Valle', 'De Reyes', 'Homar', 'El Trebol',
+    'Nuestra Cocina', 'Iansa Agro', 'Don Rafa', 'Santa Mónica', 'Don Humberto',
+    'La Poruña', 'Frutisa', 'Andino', 'Alka Food', 'Oregon',
+  ],
+};
