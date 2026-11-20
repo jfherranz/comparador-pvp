@@ -2,6 +2,9 @@
 
 App React Native + Expo (SDK 58). Funciona en navegador y en teléfono.
 
+**Versión publicada:** https://jfherranz.github.io/comparador-pvp/ (se entra con el usuario creado en Supabase).
+Repositorio: https://github.com/jfherranz/comparador-pvp
+
 ## Cómo abrirla
 
 En PowerShell, dentro de esta carpeta (`app`):
