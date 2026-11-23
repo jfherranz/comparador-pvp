@@ -25,7 +25,6 @@ export default function Ficha() {
   const filas = filasFicha(a);
   const resumen = a.porCadena[0];
   const masCaros = filas.filter((f) => f.indice != null && f.indice > 1).sort((x, y) => y.indice! - x.indice!);
-  const masBaratos = filas.filter((f) => f.indice != null && f.indice <= 1).sort((x, y) => x.indice! - y.indice!);
   // Productos donde al menos una marca de la competencia está más barata que Los Granos (igual que el rojo del Comparador).
   const conMasBarata = filas.filter((f) => f.lg != null && f.minKg != null && f.minKg < f.lg);
 
@@ -53,7 +52,6 @@ export default function Ficha() {
       <div class="kpis">
         <div class="kpi"><div class="l">Índice LG</div><div class="v" style="color:${resumen?.indice != null && resumen.indice > 1 ? '#C0392B' : '#2E8B57'}">${pct(resumen?.indice)}</div></div>
         <div class="kpi"><div class="l">Productos comparados</div><div class="v">${resumen?.productos ?? 0}</div></div>
-        <div class="kpi"><div class="l">LG sobre el promedio comp.</div><div class="v">${masCaros.length}</div></div>
         <div class="kpi"><div class="l">Con marca más barata que LG</div><div class="v">${conMasBarata.length}</div></div>
         <div class="kpi"><div class="l">Precios registrados</div><div class="v">${a.rows.length}</div></div>
       </div>
@@ -83,8 +81,6 @@ export default function Ficha() {
           <Row style={{ marginBottom: 14, alignItems: 'stretch' }}>
             <Kpi label="Índice LG" value={pct(resumen?.indice)} tone={resumen?.indice != null && resumen.indice > 1 ? 'bad' : 'good'} />
             <Kpi label="Productos comparados" value={String(resumen?.productos ?? 0)} />
-            <Kpi label="LG sobre el promedio comp." value={String(masCaros.length)} tone={masCaros.length ? 'bad' : 'good'} />
-            <Kpi label="LG bajo el promedio comp." value={String(masBaratos.length)} tone="good" />
             <Kpi label="Con marca más barata que LG" value={String(conMasBarata.length)} sub="al menos una marca con menor $/kg" tone={conMasBarata.length ? 'bad' : 'good'} />
           </Row>
           <Card title="Detalle por producto ($/kg)">
