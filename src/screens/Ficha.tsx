@@ -58,7 +58,7 @@ export default function Ficha() {
       ${conMasBarata.length ? `<h2>Productos con una marca más barata que Los Granos</h2><ul>${conMasBarata.map((f) => `<li>${f.producto}: ${f.minMarca} ${clp(f.minKg)}/kg vs Los Granos ${clp(f.lg)}/kg</li>`).join('')}</ul>` : ''}
       ${masCaros.length ? `<h2>Dónde Los Granos queda sobre el promedio de la competencia</h2><ul>${masCaros.map((f) => `<li>${f.producto}: ${signedPct(f.indice! - 1)} vs promedio competencia</li>`).join('')}</ul>` : ''}
       <h2>Detalle por producto ($/kg)</h2>
-      <table><thead><tr><th>Producto</th><th class="r">Los Granos</th><th class="r">Prom. comp.</th><th>Comp. más barata</th><th class="r">$/kg</th><th class="r">Índice LG</th></tr></thead>
+      <table><thead><tr><th>Producto</th><th class="r">Los Granos</th><th class="r">Prom. comp. ${cadena}</th><th>Comp. más barata</th><th class="r">$/kg</th><th class="r">Índice LG</th></tr></thead>
       <tbody>${tr}</tbody></table>
       <div class="foot">Precio efectivo = menor entre PVP normal y oferta/mayorista. $/kg = efectivo ÷ gramos × 1.000. Índice LG = $/kg LG ÷ promedio $/kg competencia.</div>
     </body></html>`;
@@ -88,7 +88,7 @@ export default function Ficha() {
               cols={[
                 { key: 'prod', label: 'Producto', w: 220 },
                 { key: 'lg', label: 'Los Granos', w: 95, align: 'right' },
-                { key: 'comp', label: 'Prom. comp.', w: 95, align: 'right' },
+                { key: 'comp', label: `Prom. comp. ${cadena}`, w: 95, align: 'right' },
                 { key: 'minM', label: 'Comp. más barata', w: 130 },
                 { key: 'minK', label: '$/kg', w: 80, align: 'right' },
                 { key: 'idx', label: 'Índice LG', w: 90, align: 'right' },

@@ -10,7 +10,7 @@ import { TODAS } from '../types';
 type Orden = 'baratas' | 'caras';
 
 export default function Brechas() {
-  const { periodo, maestros } = useApp();
+  const { periodo, maestros, cadena } = useApp();
   const a = useAnalisis();
   const [marca, setMarca] = useState<string>(TODAS);
   const [producto, setProducto] = useState<string>(TODAS);
@@ -30,7 +30,7 @@ export default function Brechas() {
   return (
     <View>
       <H>Brechas</H>
-      <Sub>Diferencia de $/kg de cada marca vs Los Granos en la misma cadena y producto · {periodoLabel(periodo)}</Sub>
+      <Sub>Diferencia de $/kg de cada marca vs Los Granos en la misma cadena y producto · {cadena === TODAS ? 'todas las cadenas' : `solo ${cadena}`} · {periodoLabel(periodo)}</Sub>
       <Card>
         <Row style={{ marginBottom: 12, alignItems: 'flex-end' }}>
           <Select label="Marca" value={marca} options={[TODAS, ...marcasComp]} onChange={setMarca} style={{ minWidth: 180 }} />

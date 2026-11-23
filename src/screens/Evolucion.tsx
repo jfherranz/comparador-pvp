@@ -54,7 +54,7 @@ export default function Evolucion() {
           <View style={{ width: '100%', minWidth: 0 }} onLayout={(e: LayoutChangeEvent) => setW(Math.max(260, Math.floor(e.nativeEvent.layout.width)))}>
             <Row style={{ marginBottom: 8 }}>
               <Row><View style={{ width: 14, height: 3, backgroundColor: C.brand }} /><Text style={{ fontSize: 12 }}>Los Granos</Text></Row>
-              <Row><View style={{ width: 14, height: 3, backgroundColor: C.comp }} /><Text style={{ fontSize: 12 }}>Promedio competencia</Text></Row>
+              <Row><View style={{ width: 14, height: 3, backgroundColor: C.comp }} /><Text style={{ fontSize: 12 }}>Promedio competencia{cadena === TODAS ? '' : ` en ${cadena}`}</Text></Row>
             </Row>
             <View style={{ height: H_, overflow: 'hidden' }}>
               <Svg width={w} height={H_} style={{ position: 'absolute', left: 0, top: 0 }}>
@@ -128,7 +128,7 @@ export default function Evolucion() {
             cols={[
               { key: 'per', label: 'Mes', w: 100 },
               { key: 'lg', label: 'Los Granos $/kg', w: 120, align: 'right' },
-              { key: 'comp', label: 'Competencia $/kg', w: 130, align: 'right' },
+              { key: 'comp', label: cadena === TODAS ? 'Competencia $/kg' : `Competencia ${cadena} $/kg`, w: 130, align: 'right' },
               { key: 'idx', label: 'Índice LG', w: 90, align: 'right' },
               { key: 'n', label: 'Comparados', w: 100, align: 'right' },
             ]}

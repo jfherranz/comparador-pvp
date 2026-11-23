@@ -31,13 +31,13 @@ export default function Resumen() {
     <View>
       <H>Resumen</H>
       <Sub>
-        {cadena === TODAS ? 'Todas las cadenas' : cadena} · {periodoLabel(periodo)}. Índice LG = $/kg Los Granos ÷ promedio $/kg de la
-        competencia (sobre 100 % = Los Granos más caro).
+        {cadena === TODAS ? 'Todas las cadenas' : `Solo ${cadena}`} · {periodoLabel(periodo)}. Índice LG = $/kg Los Granos ÷ promedio $/kg de la
+        competencia{cadena === TODAS ? '' : ` en ${cadena}`} (sobre 100 % = Los Granos más caro).
       </Sub>
 
       <Row style={{ marginBottom: 14, alignItems: 'stretch' }}>
         <Kpi
-          label="Índice LG promedio"
+          label={cadena === TODAS ? 'Índice LG promedio' : `Índice LG ${cadena}`}
           value={pct(a.indiceGlobal)}
           tone={a.indiceGlobal == null ? undefined : a.indiceGlobal > 1 ? 'bad' : 'good'}
           sub={delta != null ? `${delta > 0 ? '▲' : '▼'} ${Math.abs(delta * 100).toFixed(1).replace('.', ',')} pts vs ${periodoLabel(anterior!.periodo)}` : 'Sin mes anterior para comparar'}
@@ -72,7 +72,7 @@ export default function Resumen() {
           {a.porCadena.length > 0 && <Text style={{ color: C.muted, fontSize: 11 }}>La línea negra marca 100 %.</Text>}
         </Card>
 
-        <Card title={`Alertas (${a.alertas.length})`} style={{ flexGrow: 2, flexShrink: 1, flexBasis: 520, minWidth: 0 }}>
+        <Card title={`Alertas${cadena === TODAS ? '' : ` en ${cadena}`} (${a.alertas.length})`} style={{ flexGrow: 2, flexShrink: 1, flexBasis: 520, minWidth: 0 }}>
           {a.alertas.length === 0 ? (
             <Empty text="Ninguna marca de la competencia está más barata que Los Granos." />
           ) : (

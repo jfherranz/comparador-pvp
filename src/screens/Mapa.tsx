@@ -5,6 +5,7 @@ import { useApp } from '../store/AppContext';
 import { useAnalisis } from '../store/useAnalisis';
 import { Celda, clp, LG, pct, periodoLabel, signedPct } from '../logic/calc';
 import { C, colorIndice } from '../theme';
+import { TODAS } from '../types';
 
 /** Nombre corto para el encabezado de columna */
 const corto = (p: string) =>
@@ -13,7 +14,7 @@ const corto = (p: string) =>
     .replace('Partidas', 'Part.').replace('Partida', 'Part.').replace(' Sin Piel', ' s/piel');
 
 export default function Mapa() {
-  const { periodo } = useApp();
+  const { periodo, cadena } = useApp();
   const a = useAnalisis();
   const [sel, setSel] = useState<Celda | null>(null);
 
@@ -25,7 +26,7 @@ export default function Mapa() {
   return (
     <View>
       <H>Mapa de calor</H>
-      <Sub>Índice LG por cadena y producto · {periodoLabel(periodo)}. Toca una celda para ver el detalle por marca.</Sub>
+      <Sub>Índice LG por cadena y producto · {cadena === TODAS ? 'todas las cadenas' : `solo ${cadena}`} · {periodoLabel(periodo)}. Toca una celda para ver el detalle por marca.</Sub>
       <Card
         right={
           <Row>

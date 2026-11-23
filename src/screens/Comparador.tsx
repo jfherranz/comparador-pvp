@@ -15,7 +15,7 @@ export default function Comparador() {
   const cols = [
     { key: 'prod', label: 'Producto', w: telefono ? 134 : 220 },
     ...a.marcas.map((m) => ({ key: 'm:' + m, label: m, w: telefono ? 80 : m === LG ? 96 : 88, align: 'right' as const })),
-    { key: 'comp', label: 'Prom. comp.', w: 92, align: 'right' as const },
+    { key: 'comp', label: cadena === TODAS ? 'Prom. comp.' : `Prom. comp. ${cadena}`, w: 92, align: 'right' as const },
     { key: 'idx', label: 'Índice LG', w: 90, align: 'right' as const },
   ];
 
@@ -41,7 +41,7 @@ export default function Comparador() {
     <View>
       <H>Comparador</H>
       <Sub>
-        $/kg por producto y marca · {cadena === TODAS ? 'promedio de todas las cadenas' : `solo marcas presentes en ${cadena}`} ·{' '}
+        $/kg por producto y marca · {cadena === TODAS ? 'promedio de todas las cadenas' : `solo precios de ${cadena} (sin promediar con otras cadenas)`} ·{' '}
         {periodoLabel(periodo)}
       </Sub>
       <Card
