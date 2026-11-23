@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Text, useWindowDimensions, View } from 'react-native';
 import { Badge, Card, Empty, H, Row, Sub, Table } from '../components/ui';
 import { useApp } from '../store/AppContext';
 import { useAnalisis } from '../store/useAnalisis';
@@ -10,10 +10,11 @@ import { TODAS } from '../types';
 export default function Comparador() {
   const { cadena, periodo } = useApp();
   const a = useAnalisis();
+  const telefono = useWindowDimensions().width < 600;
 
   const cols = [
-    { key: 'prod', label: 'Producto', w: 220 },
-    ...a.marcas.map((m) => ({ key: 'm:' + m, label: m, w: m === LG ? 96 : 88, align: 'right' as const })),
+    { key: 'prod', label: 'Producto', w: telefono ? 134 : 220 },
+    ...a.marcas.map((m) => ({ key: 'm:' + m, label: m, w: telefono ? 80 : m === LG ? 96 : 88, align: 'right' as const })),
     { key: 'comp', label: 'Prom. comp.', w: 92, align: 'right' as const },
     { key: 'idx', label: 'Índice LG', w: 90, align: 'right' as const },
   ];
@@ -52,7 +53,7 @@ export default function Comparador() {
         }
         title={`${a.porProducto.length} productos · ${a.marcas.length} marcas`}
       >
-        {rows.length ? <Table cols={cols} rows={rows} /> : <Empty text="Sin datos para estos filtros." />}
+        {rows.length ? <Table cols={cols} rows={rows} fijas={a.marcas[0] === LG ? 2 : 1} /> : <Empty text="Sin datos para estos filtros." />}
         {cadena === TODAS && rows.length > 0 && (
           <Text style={{ color: C.muted, fontSize: 12, marginTop: 10 }}>
             Con "Todas", cada $/kg es el promedio entre cadenas y el índice LG es el promedio de los índices de cada cadena

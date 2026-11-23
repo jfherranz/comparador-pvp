@@ -145,12 +145,17 @@ export function Sub({ children }: { children: React.ReactNode }) {
 }
 
 /** Tabla simple con anchos fijos por columna y scroll horizontal. */
-export function Table({ cols, rows, onRowPress, maxHeight }: {
+export function Table({ cols, rows, onRowPress, maxHeight, fijas }: {
   cols: { key: string; label: string; w: number; align?: 'left' | 'right' | 'center' }[];
   rows: { key: string; cells: Record<string, React.ReactNode>; style?: Record<string, StyleProp<ViewStyle>> }[];
   onRowPress?: (key: string) => void;
   maxHeight?: number;
+  /** Cantidad de columnas iniciales que quedan fijas al desplazar horizontalmente. */
+  fijas?: number;
 }) {
+  if (fijas && fijas > 0 && fijas < cols.length) {
+    return <TablaFija cols={cols} rows={rows} onRowPress={onRowPress} maxHeight={maxHeight} fijas={fijas} />;
+  }
   const body = rows.map((r, i) => (
     <Pressable
       key={r.key}
@@ -181,6 +186,60 @@ export function Table({ cols, rows, onRowPress, maxHeight }: {
       </View>
     </ScrollView>
   );
+}
+
+/** Tabla con las primeras `fijas` columnas inmóviles y el resto con scroll horizontal.
+ *  Las filas tienen alto fijo para que ambas mitades queden alineadas. */
+const ALTO_TH = 46, ALTO_TR = 50;
+function TablaFija({ cols, rows, onRowPress, maxHeight, fijas }: {
+  cols: { key: string; label: string; w: number; align?: 'left' | 'right' | 'center' }[];
+  rows: { key: string; cells: Record<string, React.ReactNode>; style?: Record<string, StyleProp<ViewStyle>> }[];
+  onRowPress?: (key: string) => void;
+  maxHeight?: number;
+  fijas: number;
+}) {
+  const [hov, setHov] = useState<string | null>(null);
+  const alinear = (a?: string): 'flex-end' | 'center' | 'flex-start' => (a === 'right' ? 'flex-end' : a === 'center' ? 'center' : 'flex-start');
+  const parte = (cs: typeof cols, sombra: boolean) => (
+    <View style={sombra ? { borderRightWidth: 2, borderColor: C.line, backgroundColor: C.card } : undefined}>
+      <View style={[s.thRow, { height: ALTO_TH }]}>
+        {cs.map((c) => (
+          <View key={c.key} style={[s.th, { width: c.w, alignItems: alinear(c.align) }]}>
+            <Text style={s.thText} numberOfLines={2}>{c.label}</Text>
+          </View>
+        ))}
+      </View>
+      {rows.map((r, i) => (
+        <Pressable
+          key={r.key}
+          onPress={onRowPress ? () => onRowPress(r.key) : undefined}
+          onHoverIn={() => setHov(r.key)}
+          onHoverOut={() => setHov((v) => (v === r.key ? null : v))}
+          style={[
+            s.tr, { height: ALTO_TR, backgroundColor: C.card },
+            i % 2 === 1 && { backgroundColor: '#FAF9F6' },
+            hov === r.key && { backgroundColor: C.brandSoft },
+          ]}
+        >
+          {cs.map((c) => {
+            const v = r.cells[c.key];
+            return (
+              <View key={c.key} style={[s.td, { width: c.w, alignItems: alinear(c.align) }, r.style?.[c.key]]}>
+                {typeof v === 'string' || typeof v === 'number' ? <Text style={s.tdText} numberOfLines={2}>{v}</Text> : v}
+              </View>
+            );
+          })}
+        </Pressable>
+      ))}
+    </View>
+  );
+  const tabla = (
+    <View style={{ flexDirection: 'row' }}>
+      {parte(cols.slice(0, fijas), true)}
+      <ScrollView horizontal style={{ flex: 1 }}>{parte(cols.slice(fijas), false)}</ScrollView>
+    </View>
+  );
+  return maxHeight ? <ScrollView style={{ maxHeight }}>{tabla}</ScrollView> : tabla;
 }
 
 export function Row({ children, style, wrap = true }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; wrap?: boolean }) {
