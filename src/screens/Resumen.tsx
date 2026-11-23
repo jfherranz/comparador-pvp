@@ -48,7 +48,7 @@ export default function Resumen() {
       </Row>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
-        <Card title="Índice LG por cadena" style={{ flexGrow: 1, flexBasis: 340 }}>
+        <Card title="Índice LG por cadena" style={{ flexGrow: 1, flexShrink: 1, flexBasis: 340, minWidth: 0 }}>
           {a.porCadena.length === 0 && <Empty text="Sin datos para estos filtros." />}
           {a.porCadena.map((c) => {
             const col = colorIndice(c.indice);
@@ -72,7 +72,7 @@ export default function Resumen() {
           {a.porCadena.length > 0 && <Text style={{ color: C.muted, fontSize: 11 }}>La línea negra marca 100 %.</Text>}
         </Card>
 
-        <Card title={`Alertas (${a.alertas.length})`} style={{ flexGrow: 2, flexBasis: 520 }}>
+        <Card title={`Alertas (${a.alertas.length})`} style={{ flexGrow: 2, flexShrink: 1, flexBasis: 520, minWidth: 0 }}>
           {a.alertas.length === 0 ? (
             <Empty text="Los Granos no queda más caro que la competencia en ningún producto." />
           ) : (

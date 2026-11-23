@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { LayoutChangeEvent, Pressable, Text, View } from 'react-native';
+import { LayoutChangeEvent, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import { Card, Empty, H, Row, Select, Sub, Table } from '../components/ui';
 import { useApp } from '../store/AppContext';
@@ -10,7 +10,11 @@ import { TODAS } from '../types';
 export default function Evolucion() {
   const { precios, cadena, maestros } = useApp();
   const [producto, setProducto] = useState<string>(TODAS);
-  const [w, setW] = useState(600);
+  const [medido, setW] = useState<number | null>(null);
+  // Ancho disponible según la pantalla (menú lateral ≥900 px; márgenes de página y tarjeta).
+  const { width: ww } = useWindowDimensions();
+  const disponible = ww >= 900 ? Math.min(1300, ww - 220) - 44 - 34 : ww - 62;
+  const w = Math.max(260, Math.min(medido ?? disponible, disponible));
   const [hover, setHover] = useState<number | null>(null);
 
   const serie = useMemo(
@@ -47,13 +51,13 @@ export default function Evolucion() {
         {!serie.length ? (
           <Empty text="Sin datos comparables." />
         ) : (
-          <View onLayout={(e: LayoutChangeEvent) => setW(Math.max(280, e.nativeEvent.layout.width))}>
+          <View style={{ width: '100%', minWidth: 0 }} onLayout={(e: LayoutChangeEvent) => setW(Math.max(260, Math.floor(e.nativeEvent.layout.width)))}>
             <Row style={{ marginBottom: 8 }}>
               <Row><View style={{ width: 14, height: 3, backgroundColor: C.brand }} /><Text style={{ fontSize: 12 }}>Los Granos</Text></Row>
               <Row><View style={{ width: 14, height: 3, backgroundColor: C.comp }} /><Text style={{ fontSize: 12 }}>Promedio competencia</Text></Row>
             </Row>
-            <View style={{ height: H_ }}>
-              <Svg width={w} height={H_}>
+            <View style={{ height: H_, overflow: 'hidden' }}>
+              <Svg width={w} height={H_} style={{ position: 'absolute', left: 0, top: 0 }}>
                 {ticks.map((t, i) => (
                   <React.Fragment key={i}>
                     <Line x1={PL} x2={w - PR} y1={yAt(t)} y2={yAt(t)} stroke={C.line} strokeWidth={1} />

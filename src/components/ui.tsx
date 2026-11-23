@@ -12,7 +12,7 @@ export function Card({ children, style, title, right }: {
       {(title || right) && (
         <View style={s.cardHead}>
           {title ? <Text style={s.cardTitle}>{title}</Text> : <View />}
-          {right}
+          {right ? <View style={{ flexShrink: 1, maxWidth: '100%', minWidth: 0 }}>{right}</View> : null}
         </View>
       )}
       {children}
