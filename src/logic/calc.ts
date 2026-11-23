@@ -48,6 +48,8 @@ export type Celda = {
   lg: number | null; // $/kg Los Granos
   comp: number | null; // promedio $/kg de las marcas de la competencia
   indice: number | null; // lg / comp
+  minMarca: string | null; // marca de la competencia con menor $/kg
+  minKg: number | null;
 };
 
 export type Analisis = {
@@ -62,7 +64,7 @@ export type Analisis = {
   }[];
   marcas: string[]; // marcas presentes, Los Granos primero
   indiceGlobal: number | null;
-  alertas: Celda[]; // celdas con índice > 100 %, ordenadas por la diferencia
+  alertas: Celda[]; // celdas donde alguna marca de la competencia está más barata que LG, ordenadas por la diferencia
 };
 
 export function filtrar(precios: Precio[], cadena: string, periodo: string): Precio[] {
@@ -70,6 +72,9 @@ export function filtrar(precios: Precio[], cadena: string, periodo: string): Pre
     (p) => (cadena === TODAS || p.cadena === cadena) && (periodo === TODAS || periodoDe(p.fecha) === periodo),
   );
 }
+
+/** Alerta: al menos una marca de la competencia tiene menor $/kg que Los Granos en la misma cadena (criterio del Excel). */
+export const esAlerta = (c: Celda) => c.lg != null && c.minKg != null && c.minKg < c.lg;
 
 export function analizar(rows: Precio[], ordenProductos: string[], ordenCadenas: string[]): Analisis {
   // cadena -> producto -> marca -> [$/kg]
@@ -93,7 +98,8 @@ export function analizar(rows: Precio[], ordenProductos: string[], ordenCadenas:
       const lg = marcas[LG] ?? null;
       const comp = mean(Object.entries(marcas).filter(([m]) => m !== LG).map(([, v]) => v));
       const indice = lg != null && comp != null ? lg / comp : null;
-      celdas.push({ cadena, producto, marcas, lg, comp, indice });
+      const min = Object.entries(marcas).filter(([m]) => m !== LG).sort((x, y) => x[1] - y[1])[0];
+      celdas.push({ cadena, producto, marcas, lg, comp, indice, minMarca: min?.[0] ?? null, minKg: min?.[1] ?? null });
     });
   });
 
@@ -115,7 +121,7 @@ export function analizar(rows: Precio[], ordenProductos: string[], ordenCadenas:
       cadena,
       indice: mean(cs.map((c) => c.indice!)),
       productos: cs.length,
-      alertas: cs.filter((c) => c.indice! > 1).length,
+      alertas: cs.filter(esAlerta).length,
     };
   });
 
@@ -138,7 +144,7 @@ export function analizar(rows: Precio[], ordenProductos: string[], ordenCadenas:
   const marcas = [...marcasSet].sort((a, b) => (a === LG ? -1 : b === LG ? 1 : a.localeCompare(b, 'es')));
 
   const conIndice = celdas.filter((c) => c.indice != null);
-  const alertas = conIndice.filter((c) => c.indice! > 1).sort((a, b) => b.indice! - a.indice!);
+  const alertas = celdas.filter(esAlerta).sort((a, b) => b.lg! / b.minKg! - a.lg! / a.minKg!);
 
   return {
     celdas,

@@ -42,7 +42,7 @@ export default function Resumen() {
           tone={a.indiceGlobal == null ? undefined : a.indiceGlobal > 1 ? 'bad' : 'good'}
           sub={delta != null ? `${delta > 0 ? '▲' : '▼'} ${Math.abs(delta * 100).toFixed(1).replace('.', ',')} pts vs ${periodoLabel(anterior!.periodo)}` : 'Sin mes anterior para comparar'}
         />
-        <Kpi label="Alertas (LG más caro)" value={String(a.alertas.length)} tone={a.alertas.length ? 'bad' : 'good'} sub={`de ${comparados} producto-cadena comparados`} />
+        <Kpi label="Alertas (marca más barata que LG)" value={String(a.alertas.length)} tone={a.alertas.length ? 'bad' : 'good'} sub={`de ${comparados} producto-cadena comparados`} />
         <Kpi label="Precios registrados" value={String(a.rows.length)} sub={`${a.porCadena.length} cadenas · ${a.porProducto.length} productos`} />
         <Kpi label="Fotos del período" value={String(fotosPer)} sub={a.rows.filter((r) => !r.fotoId).length ? `${a.rows.filter((r) => !r.fotoId).length} precios sin foto (datos de partida)` : undefined} />
       </Row>
@@ -74,7 +74,7 @@ export default function Resumen() {
 
         <Card title={`Alertas (${a.alertas.length})`} style={{ flexGrow: 2, flexShrink: 1, flexBasis: 520, minWidth: 0 }}>
           {a.alertas.length === 0 ? (
-            <Empty text="Los Granos no queda más caro que la competencia en ningún producto." />
+            <Empty text="Ninguna marca de la competencia está más barata que Los Granos." />
           ) : (
             <Table
               maxHeight={520}
@@ -82,7 +82,8 @@ export default function Resumen() {
                 { key: 'cad', label: 'Cadena', w: 120 },
                 { key: 'prod', label: 'Producto', w: 220 },
                 { key: 'lg', label: 'LG $/kg', w: 80, align: 'right' },
-                { key: 'comp', label: 'Comp. $/kg', w: 90, align: 'right' },
+                { key: 'marca', label: 'Marca más barata', w: 120 },
+                { key: 'comp', label: 'Marca $/kg', w: 90, align: 'right' },
                 { key: 'dif', label: 'Diferencia', w: 95, align: 'right' },
               ]}
               rows={a.alertas.map((c) => ({
@@ -91,8 +92,9 @@ export default function Resumen() {
                   cad: c.cadena,
                   prod: c.producto,
                   lg: clp(c.lg),
-                  comp: clp(c.comp),
-                  dif: <Badge text={signedPct(c.indice! - 1)} tone="bad" />,
+                  marca: c.minMarca ?? '–',
+                  comp: clp(c.minKg),
+                  dif: <Badge text={signedPct(c.lg! / c.minKg! - 1)} tone="bad" />,
                 },
               }))}
             />
