@@ -13,3 +13,6 @@ drop policy if exists lecturas_terreno_leer on public.lecturas_terreno;
 create policy lecturas_terreno_leer on public.lecturas_terreno for select to authenticated using (public.mi_rol() = 'admin');
 drop policy if exists lecturas_terreno_borrar on public.lecturas_terreno;
 create policy lecturas_terreno_borrar on public.lecturas_terreno for delete to authenticated using (public.mi_rol() = 'admin');
+-- Este proyecto no da permisos de tabla por defecto: hay que otorgarlos explícitamente (RLS sigue filtrando por rol).
+grant select, delete on public.lecturas_terreno to authenticated;
+grant all on public.lecturas_terreno to service_role;
