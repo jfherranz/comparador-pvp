@@ -171,6 +171,35 @@ export async function borrarFotoTerreno(ruta: string) {
   ok(await sb().storage.from('fotos').remove([ruta]));
 }
 
+export type PrecioLeido = {
+  producto: string; marca: string; formato: number | null; pvpNormal: number | null; pvpOferta: number | null;
+  obs?: string; confianza?: 'alta' | 'media' | 'baja';
+};
+export type LecturaTerreno = { ruta: string; cadena: string; fecha: string; nota: string | null; precios: PrecioLeido[] };
+
+/** Lecturas que dejó la tarea nocturna, esperando el visto bueno del editor. */
+export async function listarLecturasTerreno(): Promise<LecturaTerreno[]> {
+  return ok(await sb().from('lecturas_terreno').select('ruta, cadena, fecha, nota, precios').order('ruta')) as LecturaTerreno[];
+}
+
+/** Quita la lectura y la foto de terreno (después de guardarla como foto normal, o al descartarla). */
+export async function cerrarLecturaTerreno(ruta: string) {
+  ok(await sb().from('lecturas_terreno').delete().eq('ruta', ruta));
+  ok(await sb().storage.from('fotos').remove([ruta]));
+}
+
+/** Baja la foto de terreno como data URI (para mostrarla y volver a guardarla unida a sus precios). */
+export async function imagenTerreno(ruta: string): Promise<string | null> {
+  const { data } = await sb().storage.from('fotos').download(ruta);
+  if (!data) return null;
+  return new Promise((resolve) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => resolve(null);
+    r.readAsDataURL(data);
+  });
+}
+
 export async function urlFotoTerreno(ruta: string): Promise<string | undefined> {
   const { data } = await sb().storage.from('fotos').createSignedUrl(ruta, 3600);
   return data?.signedUrl;

@@ -14,11 +14,16 @@ import * as R from '../store/remoto';
 type Fila = {
   key: string; producto: string; marca: string; formato: string; normal: string; oferta: string; obs: string;
   confianza?: 'alta' | 'media' | 'baja';
+  /** Solo en lecturas de terreno: false hasta que el editor da el visto bueno. */
+  ok?: boolean;
 };
 type Item = {
   key: string; dataUri: string | null; archivo: string; cadena: string; fecha: string; filas: Fila[];
-  nota?: string; origen: 'analisis' | 'manual';
+  nota?: string; origen: 'analisis' | 'manual' | 'terreno';
+  /** Ruta en la nube de la foto de terreno (para cerrarla al guardar o descartar). */
+  ruta?: string;
 };
+const porAprobar = (it: Item) => it.filas.filter((f) => f.ok === false).length;
 
 const num = (s: string) => {
   const n = Number(s.replace(/[.$\s]/g, '').replace(',', '.'));
@@ -118,6 +123,45 @@ export default function Cargar() {
     if (Platform.OS === 'web' && __DEV__) (window as any).__cargarCarpeta = (a: ArchivoCarpeta[]) => ref.current(a);
   }, []);
 
+  // ---- Lecturas nocturnas de las fotos de terreno ----
+  const [lecturas, setLecturas] = useState<number | null>(null);
+  const cargarLecturas = async () => {
+    try {
+      const ls = await R.listarLecturasTerreno();
+      setLecturas(ls.length);
+      const nuevos: Item[] = [];
+      for (const l of ls) {
+        nuevos.push({
+          key: uid(), dataUri: await R.imagenTerreno(l.ruta), archivo: l.ruta, ruta: l.ruta, origen: 'terreno',
+          nota: l.nota ?? undefined, cadena: alMaestro(l.cadena, maestros.cadenas) || l.cadena, fecha: String(l.fecha).slice(0, 10),
+          filas: l.precios.map((p) => ({
+            key: uid(),
+            producto: alMaestro(p.producto, maestros.productos),
+            marca: alMaestro(p.marca, maestros.marcas),
+            formato: p.formato ? String(p.formato) : '',
+            normal: p.pvpNormal ? String(p.pvpNormal) : '',
+            oferta: p.pvpOferta ? String(p.pvpOferta) : '',
+            obs: p.obs ?? '',
+            confianza: p.confianza,
+            ok: false,
+          })),
+        });
+      }
+      setItems((xs) => [...nuevos, ...xs.filter((x) => x.origen !== 'terreno')]);
+    } catch (e: any) {
+      aviso('No pude leer las lecturas de terreno', e?.message ?? String(e));
+    }
+  };
+  useEffect(() => { if (R.REMOTO && rol === 'admin') cargarLecturas(); }, [rol]);
+
+  const descartar = async (it: Item) => {
+    if (it.origen === 'terreno' && it.ruta) {
+      try { await R.cerrarLecturaTerreno(it.ruta); } catch (e: any) { aviso('No se pudo descartar', e?.message ?? String(e)); return; }
+      setLecturas((n) => (n ? n - 1 : n));
+    }
+    setItems((xs) => xs.filter((x) => x.key !== it.key));
+  };
+
   if (rol !== 'admin') return <Card><Empty text="Solo el editor puede cargar fotos." /></Card>;
 
   // ---- Fotos a mano ----
@@ -143,7 +187,8 @@ export default function Cargar() {
   };
 
   // ---- Guardar ----
-  const guardables = items.filter((i) => i.filas.length && !errorItem(i, maestros.cadenas));
+  const guardables = items.filter((i) => i.filas.length && !porAprobar(i) && !errorItem(i, maestros.cadenas));
+  const sinAprobar = items.filter((i) => porAprobar(i)).length;
   const totalFilas = guardables.reduce((n, i) => n + i.filas.length, 0);
   const errores = guardables.flatMap((i) => i.filas.map((f) => errorFila(f, maestros.productos, maestros.marcas))).filter(Boolean).length;
   const bloqueados = items.filter((i) => i.filas.length && errorItem(i, maestros.cadenas)).length;
@@ -161,13 +206,14 @@ export default function Cargar() {
           it.dataUri!,
           it.filas.map((f) => ({
             fecha: it.fecha, cadena: it.cadena, sala: 'General', producto: f.producto, marca: f.marca, formato: num(f.formato)!,
-            pvpNormal: num(f.normal), pvpOferta: num(f.oferta), reponedor: it.origen === 'analisis' ? 'Tarea mensual' : 'Foto app', obs: f.obs,
+            pvpNormal: num(f.normal), pvpOferta: num(f.oferta), reponedor: it.origen === 'analisis' ? 'Tarea mensual' : it.origen === 'terreno' ? 'Foto terreno' : 'Foto app', obs: f.obs,
           })),
         );
       } catch (e: any) {
         fallo = `${it.archivo ?? 'Foto'}: ${e?.message ?? String(e)}`;
         break;
       }
+      if (it.origen === 'terreno' && it.ruta) await R.cerrarLecturaTerreno(it.ruta).catch(() => {}); // ya quedó guardada como foto normal
       guardadas.add(it.key);
       fotosOk++; preciosOk += it.filas.length;
     }
@@ -185,7 +231,7 @@ export default function Cargar() {
         cada precio queda unido a su foto.
       </Sub>
 
-      {R.REMOTO && <Terreno cadenas={maestros.cadenas} />}
+      {R.REMOTO && <Terreno cadenas={maestros.cadenas} leidas={items.filter((i) => i.ruta).map((i) => i.ruta!)} />}
 
       <Card title="1. Análisis mensual de fotos">
         <Text style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>
@@ -244,10 +290,11 @@ export default function Cargar() {
                       <Select label="Cadena" value={it.cadena} options={maestros.cadenas} onChange={(v) => upd(it.key, { cadena: v })} style={{ minWidth: 160 }} compact />
                       <Field label="Fecha" value={it.fecha} onChangeText={(v) => upd(it.key, { fecha: v })} style={{ width: 120 }} />
                       <Badge text={`${it.filas.length} precios`} tone={it.filas.length ? 'good' : 'neutral'} />
+                      {porAprobar(it) ? <Badge text={`${porAprobar(it)} por aprobar`} tone="neutral" /> : null}
                     </Row>
                     <Row>
                       <Btn small kind="ghost" label="+ Fila" onPress={() => upd(it.key, { filas: [...it.filas, filaVacia()] })} />
-                      <Btn small kind="danger" label="Descartar" onPress={() => setItems((xs) => xs.filter((x) => x.key !== it.key))} />
+                      <Btn small kind="danger" label="Descartar" onPress={() => descartar(it)} />
                     </Row>
                   </Row>
                   <Text style={{ color: C.muted, fontSize: 12, marginBottom: 6 }}>{it.archivo}</Text>
@@ -258,7 +305,7 @@ export default function Cargar() {
                     const err = errorFila(f, maestros.productos, maestros.marcas);
                     const prev = { pvpNormal: num(f.normal), pvpOferta: num(f.oferta), formato: num(f.formato) ?? 0 };
                     return (
-                      <View key={f.key} style={{ borderWidth: 1, borderColor: err ? C.red : C.line, borderRadius: 10, padding: 10, marginBottom: 8, backgroundColor: f.confianza === 'baja' ? '#FFF9EC' : '#fff' }}>
+                      <View key={f.key} style={{ borderColor: err ? C.red : f.ok ? C.brand : C.line, borderWidth: f.ok ? 2 : 1, borderRadius: 10, padding: 10, marginBottom: 8, backgroundColor: f.confianza === 'baja' ? '#FFF9EC' : '#fff' }}>
                         <Row style={{ alignItems: 'flex-end' }}>
                           <Select label="Producto" value={f.producto} options={maestros.productos} onChange={(v) => updFila(it.key, f.key, { producto: v })} style={{ minWidth: 230, flexGrow: 2 }} compact />
                           <Select label="Marca" value={f.marca} options={maestros.marcas} onChange={(v) => updFila(it.key, f.key, { marca: v })} style={{ minWidth: 140, flexGrow: 1 }} compact />
@@ -271,9 +318,21 @@ export default function Cargar() {
                           <Text style={{ fontSize: 12, color: C.muted }}>Efectivo {clp(efectivo(prev))} · {clp(porKg(prev))}/kg</Text>
                           {f.confianza === 'baja' && <Badge text="Revisar: lectura dudosa" tone="neutral" />}
                           {err && <Text style={{ color: C.red, fontSize: 12, fontWeight: '700' }}>{err}</Text>}
-                          <Pressable onPress={() => upd(it.key, { filas: it.filas.filter((x) => x.key !== f.key) })}>
-                            <Text style={{ color: C.red, fontSize: 18, paddingHorizontal: 6 }}>×</Text>
-                          </Pressable>
+                          {f.ok === undefined ? (
+                            <Pressable onPress={() => upd(it.key, { filas: it.filas.filter((x) => x.key !== f.key) })}>
+                              <Text style={{ color: C.red, fontSize: 18, paddingHorizontal: 6 }}>×</Text>
+                            </Pressable>
+                          ) : f.ok ? (
+                            <Row style={{ alignItems: 'center' }}>
+                              <Badge text="✓ Aprobada" tone="good" />
+                              <Btn small kind="ghost" label="Deshacer" onPress={() => updFila(it.key, f.key, { ok: false })} />
+                            </Row>
+                          ) : (
+                            <Row>
+                              <Btn small label="✓ Correcto" disabled={!!err} onPress={() => updFila(it.key, f.key, { ok: true })} />
+                              <Btn small kind="danger" label="✗ Incorrecto" onPress={() => upd(it.key, { filas: it.filas.filter((x) => x.key !== f.key) })} />
+                            </Row>
+                          )}
                         </Row>
                       </View>
                     );
@@ -290,6 +349,7 @@ export default function Cargar() {
           <Text style={{ color: C.muted }}>
             {guardables.length} fotos · {totalFilas} precios listos{errores ? ` · ${errores} filas por corregir` : ''}
             {bloqueados ? ` · ${bloqueados} fotos con problemas no se guardarán` : ''}
+            {sinAprobar ? ` · ${sinAprobar} fotos de terreno con filas sin visto bueno` : ''}
           </Text>
           <Btn label={guardando ? 'Guardando…' : 'Guardar todo'} onPress={guardar} disabled={!totalFilas || guardando} />
         </Row>
@@ -302,7 +362,7 @@ export default function Cargar() {
 }
 
 /** Subir fotos desde el teléfono en terreno: quedan en la nube hasta que la tarea mensual las baja y analiza. */
-function Terreno({ cadenas }: { cadenas: string[] }) {
+function Terreno({ cadenas, leidas }: { cadenas: string[]; leidas: string[] }) {
   const [cadena, setCadena] = useState(cadenas[0]);
   const [pend, setPend] = useState<R.FotoTerreno[] | null>(null);
   const [subiendo, setSubiendo] = useState('');
@@ -310,9 +370,9 @@ function Terreno({ cadenas }: { cadenas: string[] }) {
   const nombre = (slug: string) => cadenas.find((c) => R.slugCadena(c) === slug) ?? slug;
 
   const refrescar = async () => {
-    try { setPend(await R.listarFotosTerreno()); } catch (e: any) { aviso('No pude leer las fotos subidas', e?.message ?? String(e)); }
+    try { setPend((await R.listarFotosTerreno()).filter((f) => !leidas.includes(f.ruta))); } catch (e: any) { aviso('No pude leer las fotos subidas', e?.message ?? String(e)); }
   };
-  useEffect(() => { refrescar(); }, []);
+  useEffect(() => { refrescar(); }, [leidas.join()]);
 
   const subir = async (camara: boolean) => {
     if (camara && Platform.OS !== 'web') {
@@ -354,7 +414,7 @@ function Terreno({ cadenas }: { cadenas: string[] }) {
   return (
     <Card title="Fotos desde terreno">
       <Text style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>
-        Elige la cadena y toma las fotos de los flejes. Quedan guardadas en la nube y el día 15 se bajan a la carpeta Fotos y se analizan junto con las demás.
+        Elige la cadena y toma las fotos de los flejes. Quedan en la nube; cada noche a las 20:00 Claude las lee en el PC y al día siguiente aparecen abajo, en Revisar, con los precios propuestos para que des el visto bueno.
       </Text>
       <Row style={{ alignItems: 'flex-end' }}>
         <Select label="Cadena" value={cadena} options={cadenas} onChange={setCadena} style={{ minWidth: 180 }} compact />
@@ -371,11 +431,11 @@ function Terreno({ cadenas }: { cadenas: string[] }) {
         {pend == null ? (
           <Text style={{ color: C.muted, fontSize: 13 }}>Revisando fotos subidas…</Text>
         ) : !pend.length ? (
-          <Text style={{ color: C.muted, fontSize: 13 }}>No hay fotos esperando el análisis.</Text>
+          <Text style={{ color: C.muted, fontSize: 13 }}>No hay fotos esperando lectura.{leidas.length ? ` ${leidas.length} ya leídas: revísalas abajo.` : ''}</Text>
         ) : (
           <>
             <Text style={{ color: C.ink, fontWeight: '700', marginBottom: 4 }}>
-              {pend.length} {pend.length === 1 ? 'foto espera' : 'fotos esperan'} el análisis del día 15:{' '}
+              {pend.length} {pend.length === 1 ? 'foto espera' : 'fotos esperan'} la lectura de esta noche:{' '}
               <Text style={{ fontWeight: '400' }}>{[...porCadena].map(([c, n]) => `${c} ${n}`).join(' · ')}</Text>
             </Text>
             <Pressable onPress={() => setVerLista(!verLista)}>
