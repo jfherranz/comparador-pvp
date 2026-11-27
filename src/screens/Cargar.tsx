@@ -9,6 +9,7 @@ import {
   AnalisisMensual, ArchivoCarpeta, buscarImagen, elegirCarpeta, imagenReducida, leerAnalisis,
 } from '../logic/importar';
 import { C } from '../theme';
+import * as R from '../store/remoto';
 
 type Fila = {
   key: string; producto: string; marca: string; formato: string; normal: string; oferta: string; obs: string;
@@ -184,6 +185,8 @@ export default function Cargar() {
         cada precio queda unido a su foto.
       </Sub>
 
+      {R.REMOTO && <Terreno cadenas={maestros.cadenas} />}
+
       <Card title="1. Análisis mensual de fotos">
         <Text style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>
           Deja las fotos en <Text style={{ fontWeight: '700', color: C.ink }}>Comparador PVP\Fotos\[Cadena]</Text>. El día 15 a las 06:00 Claude
@@ -295,5 +298,103 @@ export default function Cargar() {
         </Text>
       </Card>
     </View>
+  );
+}
+
+/** Subir fotos desde el teléfono en terreno: quedan en la nube hasta que la tarea mensual las baja y analiza. */
+function Terreno({ cadenas }: { cadenas: string[] }) {
+  const [cadena, setCadena] = useState(cadenas[0]);
+  const [pend, setPend] = useState<R.FotoTerreno[] | null>(null);
+  const [subiendo, setSubiendo] = useState('');
+  const [verLista, setVerLista] = useState(false);
+  const nombre = (slug: string) => cadenas.find((c) => R.slugCadena(c) === slug) ?? slug;
+
+  const refrescar = async () => {
+    try { setPend(await R.listarFotosTerreno()); } catch (e: any) { aviso('No pude leer las fotos subidas', e?.message ?? String(e)); }
+  };
+  useEffect(() => { refrescar(); }, []);
+
+  const subir = async (camara: boolean) => {
+    if (camara && Platform.OS !== 'web') {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) return;
+    }
+    const r = camara
+      ? await ImagePicker.launchCameraAsync({ base64: true, quality: 0.8 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: true, base64: true, quality: 0.8 });
+    if (r.canceled || !r.assets.length) return;
+    let subidas = 0;
+    let fallo = '';
+    for (const [i, a] of r.assets.entries()) {
+      setSubiendo(`Subiendo ${i + 1} de ${r.assets.length}…`);
+      try {
+        let uri = a.base64 ? `data:${a.mimeType ?? 'image/jpeg'};base64,${a.base64}` : a.uri;
+        uri = await reducirImagen(uri, 2400, 0.85); // nítida para leer flejes, liviana para datos móviles
+        await R.subirFotoTerreno(cadena, uri);
+        subidas++;
+      } catch (e: any) {
+        fallo = e?.message ?? String(e);
+        break;
+      }
+    }
+    setSubiendo('');
+    await refrescar();
+    if (fallo) aviso('Subida incompleta', `${subidas} de ${r.assets.length} fotos subidas. Error: ${fallo}. Vuelve a intentar con las que faltan.`);
+    else aviso('Listo', `${subidas} ${subidas === 1 ? 'foto subida' : 'fotos subidas'} a ${cadena}.`);
+  };
+
+  const quitar = async (f: R.FotoTerreno) => {
+    try { await R.borrarFotoTerreno(f.ruta); await refrescar(); } catch (e: any) { aviso('No se pudo quitar', e?.message ?? String(e)); }
+  };
+
+  const porCadena = new Map<string, number>();
+  (pend ?? []).forEach((f) => porCadena.set(nombre(f.slug), (porCadena.get(nombre(f.slug)) ?? 0) + 1));
+  const hora = (f: R.FotoTerreno) => { const n = f.ruta.split('/').pop()!; return `${n.slice(11, 13)}:${n.slice(13, 15)}`; };
+
+  return (
+    <Card title="Fotos desde terreno">
+      <Text style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>
+        Elige la cadena y toma las fotos de los flejes. Quedan guardadas en la nube y el día 15 se bajan a la carpeta Fotos y se analizan junto con las demás.
+      </Text>
+      <Row style={{ alignItems: 'flex-end' }}>
+        <Select label="Cadena" value={cadena} options={cadenas} onChange={setCadena} style={{ minWidth: 180 }} compact />
+        <Btn label="Tomar foto" disabled={!!subiendo} onPress={() => subir(true)} />
+        <Btn kind="ghost" label="Elegir de la galería" disabled={!!subiendo} onPress={() => subir(false)} />
+      </Row>
+      {subiendo ? (
+        <Row style={{ marginTop: 10, alignItems: 'center' }}>
+          <ActivityIndicator color={C.brand} />
+          <Text style={{ color: C.ink, fontWeight: '600' }}>{subiendo}</Text>
+        </Row>
+      ) : null}
+      <View style={{ marginTop: 12 }}>
+        {pend == null ? (
+          <Text style={{ color: C.muted, fontSize: 13 }}>Revisando fotos subidas…</Text>
+        ) : !pend.length ? (
+          <Text style={{ color: C.muted, fontSize: 13 }}>No hay fotos esperando el análisis.</Text>
+        ) : (
+          <>
+            <Text style={{ color: C.ink, fontWeight: '700', marginBottom: 4 }}>
+              {pend.length} {pend.length === 1 ? 'foto espera' : 'fotos esperan'} el análisis del día 15:{' '}
+              <Text style={{ fontWeight: '400' }}>{[...porCadena].map(([c, n]) => `${c} ${n}`).join(' · ')}</Text>
+            </Text>
+            <Pressable onPress={() => setVerLista(!verLista)}>
+              <Text style={{ color: C.brand, fontWeight: '600', paddingVertical: 4 }}>{verLista ? 'Ocultar lista' : 'Ver lista'}</Text>
+            </Pressable>
+            {verLista && pend.map((f) => (
+              <Row key={f.ruta} style={{ justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderColor: C.line, paddingVertical: 6 }}>
+                <Text style={{ color: C.ink, fontSize: 13, flexShrink: 1 }}>{nombre(f.slug)} · {f.fecha} {hora(f)}</Text>
+                <Row>
+                  {Platform.OS === 'web' && (
+                    <Btn small kind="ghost" label="Ver" onPress={async () => { const u = await R.urlFotoTerreno(f.ruta); if (u) window.open(u, '_blank'); }} />
+                  )}
+                  <Btn small kind="danger" label="Quitar" onPress={() => quitar(f)} />
+                </Row>
+              </Row>
+            ))}
+          </>
+        )}
+      </View>
+    </Card>
   );
 }

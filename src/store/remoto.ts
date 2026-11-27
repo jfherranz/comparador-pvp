@@ -138,6 +138,44 @@ export async function borrarFoto(id: string) {
   urls.delete(id);
 }
 
+// ───────── Fotos de terreno (subidas desde el teléfono, esperan el análisis mensual) ─────────
+// Ruta: terreno/<cadena sin tildes ni espacios>/<AAAA-MM-DD>_<hhmmss>_<id>.jpg (Storage no acepta tildes en la ruta).
+// El script Fotos\_analisis\bajar_fotos_terreno.ps1 las baja a Fotos\<Cadena>\terreno\ y las borra de aquí.
+export const slugCadena = (c: string) =>
+  c.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+export type FotoTerreno = { ruta: string; slug: string; fecha: string; creado: string };
+
+export async function subirFotoTerreno(cadena: string, dataUri: string) {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  const nombre = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}_${Math.random().toString(36).slice(2, 7)}.jpg`;
+  const { bytes, tipo } = dataUriABytes(dataUri);
+  ok(await sb().storage.from('fotos').upload(`terreno/${slugCadena(cadena)}/${nombre}`, bytes, { contentType: tipo }));
+}
+
+export async function listarFotosTerreno(): Promise<FotoTerreno[]> {
+  const carpetas = (ok(await sb().storage.from('fotos').list('terreno', { limit: 1000 })) as any[]).filter((x) => !x.id);
+  const out: FotoTerreno[] = [];
+  for (const c of carpetas) {
+    const arch = ok(await sb().storage.from('fotos').list(`terreno/${c.name}`, { limit: 1000, sortBy: { column: 'name', order: 'desc' } })) as any[];
+    for (const a of arch) {
+      if (!a.id) continue;
+      out.push({ ruta: `terreno/${c.name}/${a.name}`, slug: c.name, fecha: a.name.slice(0, 10), creado: a.created_at ?? '' });
+    }
+  }
+  return out;
+}
+
+export async function borrarFotoTerreno(ruta: string) {
+  ok(await sb().storage.from('fotos').remove([ruta]));
+}
+
+export async function urlFotoTerreno(ruta: string): Promise<string | undefined> {
+  const { data } = await sb().storage.from('fotos').createSignedUrl(ruta, 3600);
+  return data?.signedUrl;
+}
+
 const urls = new Map<string, { url: string; vence: number }>();
 /** URL temporal (1 hora) para mostrar una foto privada. */
 export async function urlFoto(id: string): Promise<string | undefined> {
