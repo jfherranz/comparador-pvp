@@ -24,7 +24,7 @@ const PANTALLAS: Record<ScreenKey, React.ComponentType> = {
 function Main() {
   const { estado, rol } = useApp();
   const [screen, setScreen] = useState<ScreenKey>('resumen');
-  if (estado === 'login' || estado === 'sinPerfil') return <Login />;
+  if (estado === 'login' || estado === 'sinPerfil' || estado === 'definirClave') return <Login />;
   if (estado !== 'listo') {
     return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg }}><ActivityIndicator color={C.brand} size="large" /></View>;
   }

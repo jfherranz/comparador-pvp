@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, Vi
 import { useApp } from '../store/AppContext';
 import { cambiarClave } from '../store/remoto';
 import { C } from '../theme';
-import { TODAS } from '../types';
+import { NOMBRE_ROL, TODAS } from '../types';
 import { periodoLabel } from '../logic/calc';
 import { aviso } from '../logic/util';
 import { Btn, Field, Row, Select, s as ui } from './ui';
@@ -33,7 +33,7 @@ function Cuenta({ onClose }: { onClose: () => void }) {
         <Pressable style={ui.sheet} onPress={() => {}}>
           <Text style={ui.sheetTitle}>Mi cuenta</Text>
           <Text style={{ color: C.ink }}>{usuario}</Text>
-          <Text style={{ color: C.muted, marginBottom: 14 }}>Perfil: {rol === 'admin' ? 'Editor' : 'Editor precios'}</Text>
+          <Text style={{ color: C.muted, marginBottom: 14 }}>Perfil: {NOMBRE_ROL[rol]}</Text>
           <Field label="Nueva contraseña (mínimo 8 caracteres)" value={clave} onChangeText={setClave} secure />
           <Field label="Repite la nueva contraseña" value={clave2} onChangeText={setClave2} secure />
           {clave2.length > 0 && clave !== clave2 && <Text style={{ color: C.red, fontSize: 12 }}>No coinciden.</Text>}
@@ -86,7 +86,7 @@ export function Shell({ screen, setScreen, children }: {
       />
       {remoto ? (
         <View style={{ flexGrow: 1, minWidth: 170 }}>
-          <Text style={st.lbl}>{rol === 'admin' ? 'Editor' : 'Editor precios'}</Text>
+          <Text style={st.lbl}>{NOMBRE_ROL[rol]}</Text>
           <Pressable onPress={() => setCuenta(true)} style={[st.roleWrap, { paddingVertical: 7, paddingHorizontal: 10 }]}>
             <Text style={st.roleTxt} numberOfLines={1}>{usuario} ▾</Text>
           </Pressable>
@@ -95,9 +95,9 @@ export function Shell({ screen, setScreen, children }: {
         <View style={{ flexGrow: 1, minWidth: 170 }}>
           <Text style={st.lbl}>Perfil (demo local)</Text>
           <View style={st.roleWrap}>
-            {(['admin', 'precios'] as const).map((r) => (
+            {(['admin', 'precios', 'lector'] as const).map((r) => (
               <Pressable key={r} onPress={() => setRol(r)} style={[st.role, rol === r && st.roleOn]}>
-                <Text style={[st.roleTxt, rol === r && { color: '#fff' }]}>{r === 'admin' ? 'Editor' : 'Editor precios'}</Text>
+                <Text style={[st.roleTxt, rol === r && { color: '#fff' }]}>{NOMBRE_ROL[r]}</Text>
               </Pressable>
             ))}
           </View>

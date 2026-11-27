@@ -8,9 +8,14 @@ import { Foto, Maestros, Precio, Rol } from '../types';
 const URL_SB = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const KEY_SB = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
+// Al abrir el enlace de invitación (o de recuperación) del correo, la sesión llega en la URL y hay que definir contraseña.
+const HASH = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.hash : '';
+export const VIENE_DE_ENLACE = /type=(invite|recovery)/.test(HASH);
+export const ENLACE_INVALIDO = /error_code=/.test(HASH);
+
 export const supabase = URL_SB && KEY_SB
   ? createClient(URL_SB, KEY_SB, {
-      auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
+      auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: Platform.OS === 'web' },
     })
   : null;
 

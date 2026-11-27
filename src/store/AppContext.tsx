@@ -10,7 +10,7 @@ import * as R from './remoto';
 type MaestroTipo = keyof Maestros;
 
 /** cargando → (login) → listo.  En modo local nunca pasa por login. */
-export type Estado = 'cargando' | 'login' | 'sinPerfil' | 'listo';
+export type Estado = 'cargando' | 'login' | 'sinPerfil' | 'definirClave' | 'listo';
 
 type Ctx = {
   ready: boolean;
@@ -95,7 +95,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (remoto) {
       const sb = R.supabase!;
-      sb.auth.getSession().then(({ data }) => (data.session ? cargarRemoto() : setEstado('login')));
+      sb.auth.getSession().then(({ data }) =>
+        !data.session ? setEstado('login') : R.VIENE_DE_ENLACE ? setEstado('definirClave') : cargarRemoto());
       const { data: sub } = sb.auth.onAuthStateChange((ev) => {
         if (ev === 'SIGNED_OUT') {
           setEstado('login'); setUsuario(null); setPrecios([]); setFotos([]); periodoFijado.current = false;

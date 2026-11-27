@@ -23,7 +23,9 @@ export default function Datos() {
       <Sub>
         {rol === 'admin'
           ? 'Busca, edita o elimina precios, mantén los listados y descarga el Excel de respaldo.'
-          : 'Puedes corregir PVP normal y oferta, y descargar el Excel. El resto lo edita el editor.'}
+          : rol === 'lector'
+            ? 'Puedes revisar los precios y descargar el Excel. Tu perfil es de solo lectura.'
+            : 'Puedes corregir PVP normal y oferta, y descargar el Excel. El resto lo edita el editor.'}
       </Sub>
       <Row style={{ marginBottom: 14 }}>
         <Chip label="Precios" active={tab === 'precios'} onPress={() => setTab('precios')} />
@@ -99,7 +101,7 @@ function Precios() {
         <Text style={{ color: C.muted, marginBottom: 8 }}>{lista.length} registros · toca una fila para editar</Text>
         {pag.length ? (
           <Table
-            onRowPress={(id) => setEdit(precios.find((p) => p.id === id) ?? null)}
+            onRowPress={rol === 'lector' ? undefined : (id) => setEdit(precios.find((p) => p.id === id) ?? null)}
             cols={[
               { key: 'f', label: 'Fecha', w: 90 },
               { key: 'c', label: 'Cadena', w: 120 },

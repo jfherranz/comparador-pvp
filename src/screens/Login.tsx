@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Text, TextInput, View } from 'react-native';
 import { Btn, s as ui } from '../components/ui';
 import { useApp } from '../store/AppContext';
-import { entrar, salir } from '../store/remoto';
+import { cambiarClave, ENLACE_INVALIDO, entrar, salir } from '../store/remoto';
 import { C } from '../theme';
 
 /** Ingreso con correo y contraseña (los usuarios los crea el editor en Supabase). */
@@ -10,7 +10,10 @@ export default function Login() {
   const { estado, trasEntrar } = useApp();
   const [email, setEmail] = useState('');
   const [clave, setClave] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [clave2, setClave2] = useState('');
+  const [error, setError] = useState<string | null>(
+    ENLACE_INVALIDO ? 'El enlace del correo expiró o ya se usó. Pide al editor que te envíe una nueva invitación.' : null,
+  );
   const [enviando, setEnviando] = useState(false);
 
   const ingresar = async () => {
@@ -26,13 +29,42 @@ export default function Login() {
     }
   };
 
+  const definir = async () => {
+    setError(null);
+    setEnviando(true);
+    try {
+      await cambiarClave(clave);
+      await trasEntrar();
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setEnviando(false);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: C.brandDark, alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <View style={{ width: '100%', maxWidth: 380, backgroundColor: '#fff', borderRadius: 16, padding: 24 }}>
         <Text style={{ color: C.accent, fontWeight: '800', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>Los Granos</Text>
         <Text style={{ color: C.ink, fontWeight: '800', fontSize: 22, marginBottom: 18 }}>Comparador PVP</Text>
 
-        {estado === 'sinPerfil' ? (
+        {estado === 'definirClave' ? (
+          <>
+            <Text style={{ color: C.ink, marginBottom: 14 }}>Bienvenido. Define tu contraseña para entrar al comparador.</Text>
+            <Text style={ui.label}>Contraseña (mínimo 8 caracteres)</Text>
+            <TextInput value={clave} onChangeText={setClave} secureTextEntry autoComplete="new-password" style={[ui.input, { marginBottom: 12 }]} />
+            <Text style={ui.label}>Repite la contraseña</Text>
+            <TextInput
+              value={clave2} onChangeText={setClave2} secureTextEntry autoComplete="new-password" style={[ui.input, { marginBottom: 12 }]}
+              onSubmitEditing={() => clave.length >= 8 && clave === clave2 && definir()}
+            />
+            {clave2.length > 0 && clave !== clave2 && <Text style={{ color: C.red, marginBottom: 10 }}>No coinciden.</Text>}
+            {error && <Text style={{ color: C.red, marginBottom: 10 }}>{error}</Text>}
+            {enviando ? <ActivityIndicator color={C.brand} /> : (
+              <Btn label="Guardar y entrar" onPress={definir} disabled={clave.length < 8 || clave !== clave2} />
+            )}
+          </>
+        ) : estado === 'sinPerfil' ? (
           <>
             <Text style={{ color: C.ink, marginBottom: 14 }}>
               Tu usuario existe pero no tiene perfil asignado. Pide al editor que te dé acceso.

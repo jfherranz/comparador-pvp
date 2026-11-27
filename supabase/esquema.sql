@@ -2,13 +2,14 @@
 -- Pegar completo en Supabase → SQL Editor → Run (una sola vez, en un proyecto nuevo).
 -- Roles:  admin   = editor (todo)
 --         precios = jefatura / comercial (ve todo; solo modifica PVP normal y PVP oferta)
+--         lector  = solo lectura (ve todo; no modifica nada)
 
 -- ───────── Tablas ─────────
 create table public.perfiles (
   user_id uuid primary key references auth.users (id) on delete cascade,
   email   text not null,
   nombre  text,
-  rol     text not null default 'precios' check (rol in ('admin', 'precios')),
+  rol     text not null default 'lector' check (rol in ('admin', 'precios', 'lector')),
   creado  timestamptz not null default now()
 );
 
@@ -52,7 +53,7 @@ language sql stable security definer set search_path = public as $$
   select rol from public.perfiles where user_id = auth.uid()
 $$;
 
--- Cada usuario nuevo de Authentication recibe un perfil "precios"
+-- Cada usuario nuevo de Authentication recibe un perfil "lector" (solo lectura)
 create or replace function public.nuevo_usuario() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin

@@ -28,7 +28,8 @@ export type Maestros = {
   marcas: string[];
 };
 
-/** admin = tú (editor completo); precios = jefatura / comercial (solo edita precios) */
-export type Rol = 'admin' | 'precios';
+/** admin = tú (editor completo); precios = jefatura / comercial (solo edita precios); lector = solo ve, no edita nada */
+export type Rol = 'admin' | 'precios' | 'lector';
+export const NOMBRE_ROL: Record<Rol, string> = { admin: 'Editor', precios: 'Editor precios', lector: 'Solo lectura' };
 
 export const TODAS = 'Todas';
